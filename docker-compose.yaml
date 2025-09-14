@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  loki:
+    image: grafana/loki:3
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./config/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - loki-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  grafana:
+    image: grafana/grafana:12.0.4
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+    networks:
+      - loki-network
+    depends_on:
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+
+  loki-data-generator:
+    image: mksmki/loki-data-generator:latest
+    container_name: loki-data-generator
+    volumes:
+      - ./config/loki-data-generator.yaml:/app/config.yaml:ro
+    networks:
+      - loki-network
+    depends_on:
+      loki:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      - LDG_CONFIG=/app/config.yaml
+      - LDG_LOG_LEVEL=INFO
+
+volumes:
+  loki-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  loki-network:
+    driver: bridge

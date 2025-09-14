@@ -1,4 +1,8 @@
-PyYAML
-loki-logger-handler
-loguru
-requests
+certifi==2025.8.3
+charset-normalizer==3.4.3
+idna==3.10
+loguru==0.7.3
+loki-logger-handler==1.1.2
+PyYAML==6.0.2
+requests==2.32.5
+urllib3==2.5.0

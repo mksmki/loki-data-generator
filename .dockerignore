@@ -2,5 +2,5 @@
 *
 # selectively add specific files/dirs
 !app/*
-!config.yaml
 !requirements.txt
+!config/loki-data-generator.yaml

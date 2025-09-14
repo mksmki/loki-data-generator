@@ -1,6 +1,12 @@
 import logging
 import os
-from .generator import LokiDataGenerator
+import sys
+from pathlib import Path
+
+# Add the app directory to Python path to enable absolute imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from loki_data_generator.generator import LokiDataGenerator
 
 # Constants
 supported_log_levels = ["INFO", "ERROR", "DEBUG"]

@@ -8,9 +8,6 @@ import threading
 import time
 import random
 import string
-import json
-import requests
-import re
 import datetime
 
 logger = logging.getLogger(__name__)
@@ -107,12 +104,11 @@ class LokiDataGenerator:
         
         # Create handler
         handler = LokiLoggerHandler(
-            url=url,
-            username=username,
-            password=password,
-            tenant=tenant,
-            source=source,
-            formatter=formatter
+            url="https://{}:{}@{}/loki/api/v1/push".format(username, password, url),
+            labels={"tenant": tenant, "source": source},
+            label_keys={},
+            timeout=10,            
+            default_formatter=LoguruFormatter()
         )
         
         logger.info(f"Created Loki handler for target: {target_name} at {url}")
