@@ -1,0 +1,23 @@
+---
+loki_targets:
+  - name: loki1
+    url: http://loki:3100
+    username: admin
+    password: admin
+    tenant: tenant1
+    source: loki_data_generator
+    # Common labels for all streams
+    labels:
+      environment: development
+    streams:
+      - name: stream1
+        # Labels for this stream
+        labels:
+          device: device1
+        messages:
+          - template: "Sample info message"
+            level: INFO
+            probability: 1.0
+          - template: "Sample error message"
+            level: ERROR
+            probability: 0.1

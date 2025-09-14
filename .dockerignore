@@ -1,0 +1,6 @@
+# ignore everything
+*
+# selectively add specific files/dirs
+!app/*
+!config.yaml
+!requirements.txt

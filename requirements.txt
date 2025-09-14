@@ -1,0 +1,4 @@
+PyYAML
+loki-logger-handler
+loguru
+requests
