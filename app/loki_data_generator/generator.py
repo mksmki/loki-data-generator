@@ -1,17 +1,14 @@
-import logging
 import yaml
 import os
 from loki_logger_handler.loki_logger_handler import LokiLoggerHandler
-from loki_logger_handler.formatters.loguru_formatter import LoguruFormatter
+# from loki_logger_handler.formatters.logger_formatter import LoggerFormatter
 from loguru import logger
 import threading
 import time
 import random
 import string
 import datetime
-
-logger = logging.getLogger(__name__)
-
+import logging
 
 class LokiDataGenerator:
     def __init__(self):
@@ -46,7 +43,10 @@ class LokiDataGenerator:
                 thread.start()
                 self.threads.append(thread)
                 logger.info(f"Started thread: {thread_name}")
-        
+
+        # Report to DEBUG log the number of threads started
+        logger.debug(f"Number of threads started: {len(self.threads)}")
+
         # Wait for all threads to complete
         for thread in self.threads:
             thread.join()
@@ -93,25 +93,38 @@ class LokiDataGenerator:
     def _create_loki_handler(self, target):
         """Create a LokiLoggerHandler for the given target configuration."""
         target_name = target.get('name', 'unknown')
-        url = target.get('url', 'http://localhost:3100')
+        host = target.get('host', 'localhost')
+        port = target.get('port', 3100)
+        auth_enabled = target.get('auth_enabled', True)
+        protocol = target.get('protocol', 'https')
         username = target.get('username')
         password = target.get('password')
         tenant = target.get('tenant')
         source = target.get('source', 'loki_data_generator')
         
+        if auth_enabled:
+            url = "{}://{}:{}@{}:{}/loki/api/v1/push".format(protocol, username, password, host, port)
+        else:
+            url = "{}://{}:{}/loki/api/v1/push".format(protocol, host, port)
+
         # Create formatter
-        formatter = LoguruFormatter()
+        # formatter = LoggerFormatter()
         
         # Create handler
         handler = LokiLoggerHandler(
-            url="https://{}:{}@{}/loki/api/v1/push".format(username, password, url),
+            url=url,
             labels={"tenant": tenant, "source": source},
             label_keys={},
-            timeout=10,            
-            default_formatter=LoguruFormatter()
+            timeout=10,
+            enable_self_errors=True
+            # default_formatter=formatter
         )
+        handler.setLevel(logging.DEBUG)
         
-        logger.info(f"Created Loki handler for target: {target_name} at {url}")
+        logger.info(f"Created Loki handler for target: {target_name}")
+        logger.debug(f"Target URL: {url}")
+        logger.debug(f"Loki handler: {handler}")
+
         return handler
 
     def _stream_worker(self, target, stream, loki_handler):
@@ -135,7 +148,8 @@ class LokiDataGenerator:
                         break
                         
                     template = message_config.get('template', '')
-                    level = message_config.get('level', 'INFO')
+                    level_name = message_config.get('level', 'INFO')
+                    level = getattr(logging, level_name.upper(), logging.INFO)
                     probability = message_config.get('probability', 1.0)
                     
                     # Check probability
@@ -145,14 +159,21 @@ class LokiDataGenerator:
                     # Generate message
                     message = self._generate_message(template, labels)
                     
+                    logger.debug(f"Loki handler: {loki_handler}")
+                    logger.debug(f"Sent message to Loki: {message}")
+                    logger.debug(f"Labels: {labels}")
+                    logger.debug(f"Level: {level}")
+                    logger.debug(f"Probability: {probability}")
+                    logger.debug(f"Template: {template}")
+
                     # Send to Loki
                     self._send_to_loki(loki_handler, message, level, labels)
                     
                     # Small delay to prevent overwhelming
-                    time.sleep(0.1)
+                    time.sleep(stream.get('pause_between_messages', 0.1))
                 
                 # Sleep between message cycles
-                time.sleep(1)
+                time.sleep(stream.get('sleep_between_cycles', 1))
                 
         except Exception as e:
             logger.error(f"Error in stream worker {thread_name}: {e}")
@@ -182,13 +203,31 @@ class LokiDataGenerator:
         """Send message to Loki using the handler."""
         try:
             # Create log record
-            record = {
-                'message': message,
-                'level': level,
-                'labels': labels,
-                'timestamp': time.time()
-            }
+            record = logging.LogRecord(
+                name='loki_data_generator',
+                level=level,
+                pathname='loki_data_generator',
+                lineno=0,
+                msg=message,
+                args=(),
+                exc_info=None,
+                func=None,
+                sinfo=None,
+                labels=labels
+            )
+            # record = {
+            #     'msg': message,
+            #     'levelname': level,
+            #     'labels': labels,
+            #     'created': time.time()
+            # }
             
+            # Report details about loki_handler
+            logger.debug(f"Loki handler: {loki_handler}")
+
+            # Report details of the record
+            logger.debug(f"Sending record to Loki: {record}")
+
             # Send to Loki
             loki_handler.emit(record)
             

@@ -1,6 +1,16 @@
-version: '3.8'
-
+---
 services:
+  # alertmanager:
+  #   image: prom/alertmanager:v0.26.0
+  #   container_name: alertmanager
+  #   ports:
+  #     - "9093:9093"
+  #   volumes:
+  #     - ./config/alertmanager-config.yaml:/etc/alertmanager/config.yaml:ro
+  #   networks:
+  #     - loki-network
+  #   restart: unless-stopped
+
   loki:
     image: grafana/loki:3
     container_name: loki
@@ -41,6 +51,9 @@ services:
 
   loki-data-generator:
     image: mksmki/loki-data-generator:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: loki-data-generator
     volumes:
       - ./config/loki-data-generator.yaml:/app/config.yaml:ro
@@ -52,7 +65,7 @@ services:
     restart: unless-stopped
     environment:
       - LDG_CONFIG=/app/config.yaml
-      - LDG_LOG_LEVEL=INFO
+      # - LDG_LOG_LEVEL=DEBUG
 
 volumes:
   loki-data:

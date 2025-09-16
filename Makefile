@@ -1,5 +1,5 @@
 .PHONY: help
-VERSION:=$(shell cat ./VERSION | head -n1 | cut -d"'" -f2)
+VERSION:=$(shell grep VERSION ./app/loki_data_generator/setup.py | head -n1 | cut -d"'" -f2)
 
 help:
 	@echo "Please use 'make <target>' where <target> is one of"
@@ -17,12 +17,13 @@ clean:
 	rm -fr dist build
 
 docker-build:
-	docker build \
-		--builder default \
-		-t mksmki/loki-data-generator .
+	@docker build \
+		-t mksmki/loki-data-generator:$(VERSION) .
+	@docker tag mksmki/loki-data-generator:$(VERSION) \
+		mksmki/loki-data-generator:latest
 
 docker-push:
-	@docker tag mksmki/loki-data-generator:latest mksmki/loki-data-generator:$(VERSION)
+	# @docker tag mksmki/loki-data-generator:latest mksmki/loki-data-generator:$(VERSION)
 	@docker push mksmki/loki-data-generator:latest
 	@docker push mksmki/loki-data-generator:$(VERSION)
 
